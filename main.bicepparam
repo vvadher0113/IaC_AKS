@@ -14,19 +14,27 @@ param tags = {
 // ===========================================================================================================================================
 // Feature Flags
 // ===========================================================================================================================================
-
+  // Phase 1: AKS supprting Infrastructure Deployment
 param deployVNet = false
 param deployLogAnalyticsWorkspace = false
 param deployKeyVault = false
 param deployAcr = false
 
+  // Phase 2: Private Endpoints Deployment
 param deployKeyVaultPrivateEndpoint = false
 param deployAcrPrivateEndpoint = false
 
+  // Phase 3: AKS Cluster Deployment
 param deployAksCluster = false
 
-param deployKeyVaultRoleAssignment  = true
-param deployAcrRoleAssignment  = true
+  //Phase 4: Role Assignments Deployment //get the principal ID of the AKS cluster's system-assigned managed identity and populate the 'aksManagedIdentityPrincipalId' parameter before deploying this phase.
+param deployKeyVaultRoleAssignment  = false
+param deployAcrRoleAssignment  = false
+
+  //Phase 5: Monitoring and Addons Deployment
+param enableManagedPrometheus = false
+
+param enableIstio = false
 // ===========================================================================================================================================
 // Azure Resource Naming Parameters
 // ===========================================================================================================================================
@@ -119,7 +127,6 @@ param aksUpgradeDurationInHours = 4 // Duration in hours for the AKS cluster upg
 // ===========================================================================================================================================
 param serviceCidr = '172.20.30.0/24'
 param dnsServiceIP = '172.20.30.10'
-param enableIstio = false
 
 // ===========================================================================================================================================
 // Monitoring Parameters

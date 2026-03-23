@@ -8,7 +8,6 @@ targetScope = 'subscription'
 // ===========================================================================================================================================
 // Parameters 
 // ===========================================================================================================================================
-
 @description('Optional. Azure region for the AKS cluster. Defaults to the resource group location.')
 param location string 
 
@@ -29,7 +28,6 @@ param deployLogAnalyticsWorkspace bool = true
 
 @description('Optional. Flag to enable deployment of an Azure Key Vault for AKS secrets management. Defaults to true.')
 param deployKeyVault bool = true
-
 
 @description('Optional. Flag to enable deployment of a Key Vault private endpoint. Defaults to true.')
 param deployKeyVaultPrivateEndpoint bool = true
@@ -182,6 +180,7 @@ param NetworkPluginMode string = 'overlay' // 'overlay' for kubenet (flannel), '
 
 @description('Optional. Network plugin for the AKS cluster. Defaults to "azure" for Azure CNI when NetworkPluginMode is "transparent", or "kubenet" for kubenet when NetworkPluginMode is "overlay".')
 param NetworkPlugin string = 'azure' // 'azure' for Azure CNI, 'kubenet' for kubenet
+
 //===========================================================================================================================================
 // Node Pool Parameters
 //===========================================================================================================================================
@@ -229,7 +228,6 @@ param enableImageCleaner bool = true
 // ===========================================================================================================================================
 // Networking Parameters
 // ===========================================================================================================================================
-  
 @description('Optional. Kubernetes service CIDR. Must not overlap with the VNET address space.')
 param serviceCidr string = '172.20.30.0/24'
 
@@ -241,6 +239,7 @@ param enableIstio bool = false
 
 @description('Optional. Network policy for the AKS cluster. Defaults to "azure" for Azure CNI or "calico" for kubenet.')
 param networkpolicy string = 'azure' // 'azure' for Azure CNI, 'calico' for kubenet
+
 // ===========================================================================================================================================
 //AKS Upgrade and Maintenance Parameters
 //==========================================================================================================================================
@@ -279,8 +278,11 @@ param aksUpgradeDurationInHours int = 4
 // ===========================================================================================================================================
 // Monitoring Parameters
 // ===========================================================================================================================================
-@description('Optional. Flag to enable Container Insights monitoring for the AKS cluster. Defaults to true.')
-param enablecontainerInsights bool = true
+@description('Optional. Flag to enable Container Insights monitoring for the AKS cluster. Defaults to false.')
+param enablecontainerInsights bool = false
+  
+@description('Optional. Flag to enable Managed Prometheus monitoring for the AKS cluster. Defaults to false.')
+param enableManagedPrometheus bool = false
 
 // ===========================================================================================================================================  
 //Resource Group
@@ -428,8 +430,15 @@ module keyVault './bicep-avm-modules/avm/res/key-vault/vault/main.bicep' = if (d
 }
 
 // =========================================================================
-// AKS Cluster  
+// AKS Cluster creation (via Azure Verified Module) with 2 node pools, monitoring, and addons
 // =========================================================================
+var azureMonitorProfile = enableManagedPrometheus ? {
+metrics: {
+  enabled: true
+  }
+} : null
+
+
  module aksModule 'bicep-avm-modules/avm/res/container-service/managed-cluster/main.bicep' = if (deployAksCluster) {
   name: 'aksClusterDeployment'
   scope: resourceGroup(SubscriptionId, resourceGroupName)
@@ -474,13 +483,14 @@ module keyVault './bicep-avm-modules/avm/res/key-vault/vault/main.bicep' = if (d
       mode: 'Istio'
       istio: {
         revisions: [
-          'asm-1-20' // Example revision, check AVM docs for latest supported
+          'asm-1-28' // Example revision, check AVM docs for latest supported
         ]
       }
     } : null
     // Monitoring
    omsAgentEnabled: enablecontainerInsights
    monitoringWorkspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
+   azureMonitorProfile: azureMonitorProfile
     // Key Vault CSI and Secret Rotation
     enableKeyvaultSecretsProvider: enableKeyVaultSecretsProvider
     enableSecretRotation: enableSecretRotation
